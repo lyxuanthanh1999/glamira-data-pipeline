@@ -1,21 +1,23 @@
 # Glamira Project 05 - Báo Cáo Thống Kê Toàn Diện
 
-- **Ngày thống kê**: 2026-11-16 16:01:50
+- **Ngày thống kê**: 2026-11-20 21:51:40
 - **Tiến độ cào sản phẩm**: 98.11% (18,868 / 19,232 sản phẩm)
-- **Số sản phẩm cứu hộ qua retry**: 658 sản phẩm
+- **Số sản phẩm cứu hộ qua retry**: 2,142 sản phẩm
+- **Làm sạch giá (products_cleaned.csv)**: 18,784 / 18,868 sản phẩm có giá (99.55%)
+- **Sản phẩm không có giá (Missing Price)**: 84 sản phẩm (đã xuất ra `output/products_missing_price.csv`)
 - **Dữ liệu IP Geolocation**: 2,035,839 IP duy nhất
 
 ## Top Danh Mục Sản Phẩm Đã Cào Được
 
 | Hạng | Tên Danh Mục | Số lượng | Tỷ lệ |
 |:---:|:---|:---:|:---:|
-| 1 | Home | 1,168 | 6.2% |
-| 2 | Startseite | 793 | 4.2% |
-| 3 | Women’s Wedding Rings | 606 | 3.2% |
-| 4 | Men’s Wedding Rings | 555 | 2.9% |
-| 5 | Necklaces | 523 | 2.8% |
-| 6 | Trauringe | 511 | 2.7% |
-| 7 | Inicio | 445 | 2.4% |
-| 8 | Damenring | 432 | 2.3% |
-| 9 | Engagement Rings | 388 | 2.1% |
-| 10 | Accueil | 335 | 1.8% |
+| 1 | Home | 1,481 | 7.8% |
+| 2 | Startseite | 806 | 4.3% |
+| 3 | Men’s Wedding Rings | 758 | 4.0% |
+| 4 | Women’s Wedding Rings | 737 | 3.9% |
+| 5 | Necklaces | 621 | 3.3% |
+| 6 | Engagement Rings | 574 | 3.0% |
+| 7 | Trauringe | 517 | 2.7% |
+| 8 | Wedding Rings | 459 | 2.4% |
+| 9 | Inicio | 445 | 2.4% |
+| 10 | Rings | 440 | 2.3% |

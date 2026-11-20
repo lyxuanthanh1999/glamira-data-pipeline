@@ -12,6 +12,8 @@ import os
 import pandas as pd
 from pymongo import MongoClient
 
+
+TARGET_PRODUCTS_CLEANED_CSV = "output/products_cleaned.csv"
 TARGET_PRODUCTS_CSV = "output/products_to_crawl_full.csv"
 CRAWLED_SAMPLE_CSV = "output/crawled_products_sample.csv"
 CRAWLED_RECOVERED_CSV = "output/crawled_products_recovered.csv"
@@ -93,11 +95,48 @@ def generate_statistics():
             print(f"   {rank:>2}. {cat:<32}: {cnt:>5,} sản phẩm ({cnt/total_prod*100:>4.1f}%)")
 
     # -------------------------------------------------------------
-    # 2. THỐNG KÊ LỖI PHÁT SINH KHI CÀO (ERROR ANALYSIS)
+    # 2. THỐNG KÊ DỮ LIỆU LÀM SẠCH & LỌC SẢN PHẨM KHÔNG CÓ GIÁ
+    # -------------------------------------------------------------
+    missing_price_csv = "output/products_missing_price.csv"
+    num_no_price = 0
+    total_cleaned = 0
+    sample_no_price_ids = []
+
+    if os.path.exists(TARGET_PRODUCTS_CLEANED_CSV):
+        df_cleaned = pd.read_csv(TARGET_PRODUCTS_CLEANED_CSV)
+        total_cleaned = len(df_cleaned)
+
+        # Điều kiện không có giá: original_price bị null/NaN hoặc chuỗi rỗng
+        no_price_mask = (
+            df_cleaned["original_price"].isna() |
+            (df_cleaned["original_price"].astype(str).str.strip() == "")
+        )
+        df_no_price = df_cleaned[no_price_mask]
+        num_no_price = len(df_no_price)
+        has_price_count = total_cleaned - num_no_price
+
+        print("\n4. THỐNG KÊ DỮ LIỆU LÀM SẠCH & LỌC SẢN PHẨM KHÔNG CÓ GIÁ (CLEANED PRODUCTS):")
+        print(f"   - Tổng số sản phẩm trong file cleaned       : {total_cleaned:,} sản phẩm")
+        print(f"   - Số sản phẩm ĐÃ CÓ GIÁ (Valid Price)       : {has_price_count:,} ({has_price_count/total_cleaned*100:.2f}%)")
+        print(f"   - Số sản phẩm KHÔNG CÓ GIÁ (Missing Price)  : {num_no_price:,} ({num_no_price/total_cleaned*100:.2f}%)")
+
+        if num_no_price > 0:
+            sample_no_price_ids = df_no_price["product_id"].astype(str).tolist()
+            print(f"   - Danh sách Product ID không có giá (Mẫu {min(15, num_no_price)} ID đầu):")
+            for pid in sample_no_price_ids[:15]:
+                print(f"     + Product ID: {pid}")
+
+            # Xuất toàn bộ danh sách ID không có giá ra file riêng
+            cols_export = [c for c in ["product_id", "product_name", "url", "status"] if c in df_no_price.columns]
+            df_no_price[cols_export].to_csv(missing_price_csv, index=False)
+            print(f"   - Đã xuất danh sách toàn bộ {num_no_price:,} ID không có giá vào file: '{missing_price_csv}'")
+
+    # -------------------------------------------------------------
+    # 3. THỐNG KÊ LỖI PHÁT SINH KHI CÀO (ERROR ANALYSIS)
     # -------------------------------------------------------------
     if os.path.exists(CRAWL_ERRORS_LOG):
         df_err = pd.read_csv(CRAWL_ERRORS_LOG)
-        print("\n[CANH BAO] 4. PHÂN TÍCH LỖI KHI CÀO WEB (CRAWL ERROR LOG):")
+        print("\n5. PHÂN TÍCH LỖI KHI CÀO WEB (CRAWL ERROR LOG):")
         print(f"   - Tổng số lượt request gặp lỗi : {len(df_err):,}")
         if "status" in df_err.columns:
             err_counts = df_err["status"].value_counts()
@@ -105,10 +144,10 @@ def generate_statistics():
                 print(f"     + Mã lỗi {status:<15}: {cnt:>5,} lần ({cnt/len(df_err)*100:.1f}%)")
 
     # -------------------------------------------------------------
-    # 3. THỐNG KÊ DỮ LIỆU IP GEOLOCATION
+    # 4. THỐNG KÊ DỮ LIỆU IP GEOLOCATION
     # -------------------------------------------------------------
     if os.path.exists(IP_LOCATION_CSV):
-        print("\n5. THỐNG KÊ LÀM GIÀU DỮ LIỆU ĐỊA LÝ (IP GEOLOCATION):")
+        print("\n6. THỐNG KÊ LÀM GIÀU DỮ LIỆU ĐỊA LÝ (IP GEOLOCATION):")
         # Đọc 200,000 dòng mẫu hoặc toàn bộ để lấy top countries
         df_ip = pd.read_csv(IP_LOCATION_CSV, nrows=300000)
         total_ip_rows = sum(1 for _ in open(IP_LOCATION_CSV)) - 1
@@ -120,9 +159,9 @@ def generate_statistics():
             print(f"     {rank}. {c_name:<20}: {cnt:>6,} IP")
 
     # -------------------------------------------------------------
-    # 4. KIỂM TRA MONGODB COLLECTIONS
+    # 5. KIỂM TRA MONGODB COLLECTIONS
     # -------------------------------------------------------------
-    print("\n6. KIỂM TRA DỮ LIỆU TRONG MONGODB:")
+    print("\n7. KIỂM TRA DỮ LIỆU TRONG MONGODB:")
     try:
         client = MongoClient("mongodb://127.0.0.1:27017/", serverSelectionTimeoutMS=2000)
         db = client["countly"]
@@ -139,7 +178,7 @@ def generate_statistics():
         print(f"   [CANH BAO] Không thể kết nối MongoDB (Chưa bật service hoặc cần port forwarding): {e}")
 
     # -------------------------------------------------------------
-    # 5. XUẤT BÁO CÁO MARKDOWN
+    # 6. XUẤT BÁO CÁO MARKDOWN
     # -------------------------------------------------------------
     os.makedirs(os.path.dirname(REPORT_MD_PATH), exist_ok=True)
     with open(REPORT_MD_PATH, "w", encoding="utf-8") as f_out:
@@ -147,6 +186,9 @@ def generate_statistics():
         f_out.write(f"- **Ngày thống kê**: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f_out.write(f"- **Tiến độ cào sản phẩm**: {coverage_rate:.2f}% ({total_crawled_unique:,} / {total_target:,} sản phẩm)\n")
         f_out.write(f"- **Số sản phẩm cứu hộ qua retry**: {len(pids_rec):,} sản phẩm\n")
+        if total_cleaned > 0:
+            f_out.write(f"- **Làm sạch giá (products_cleaned.csv)**: {has_price_count:,} / {total_cleaned:,} sản phẩm có giá ({has_price_count/total_cleaned*100:.2f}%)\n")
+            f_out.write(f"- **Sản phẩm không có giá (Missing Price)**: {num_no_price:,} sản phẩm (đã xuất ra `{missing_price_csv}`)\n")
         f_out.write(f"- **Dữ liệu IP Geolocation**: {total_ip_rows if 'total_ip_rows' in locals() else 'N/A':,} IP duy nhất\n\n")
         f_out.write(f"## Top Danh Mục Sản Phẩm Đã Cào Được\n\n")
         if 'top_cats' in locals():
